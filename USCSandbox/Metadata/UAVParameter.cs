@@ -13,4 +13,11 @@ public class UAVParameter
         Index = r.ReadInt32();
         OriginalIndex = r.ReadInt32();
     }
+
+	public UAVParameter(AssetTypeValueField field)
+	{
+		Name = field["name"].AsString;
+		Index = field["index"].AsInt;
+		OriginalIndex = field["originalIndex"].AsInt;
+	}
 }
