@@ -165,7 +165,7 @@ internal class Program
             var shaderName = shaderBf["m_ParsedForm"]["m_Name"].AsString;
             //var serShader = new SerializedShader(shaderBf, ver.Value);
 
-            var shaderTextWriter = new ShaderTextWriter(shaderBf, ver.Value);
+            var shaderTextWriter = new ShaderTextWriter(shaderBf, platform, ver.Value);
             var output = shaderTextWriter.LoadAndWrite(platform);
             Console.WriteLine(output);
             //var shaderProcessor = new ShaderProcessor(shaderBf, ver.Value, platform);

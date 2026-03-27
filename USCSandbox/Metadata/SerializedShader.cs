@@ -24,7 +24,7 @@ public class SerializedShader
     // be used once during shader file write time
     public AssetTypeValueField PropsField => _shaderBf["m_ParsedForm"]["m_PropInfo"]["m_Props.Array"];
 
-    public SerializedShader(AssetTypeValueField shaderBf, UnityVersion engVer)
+    public SerializedShader(AssetTypeValueField shaderBf, GPUPlatform platform, UnityVersion engVer)
     {
         _shaderBf = shaderBf;
         _engVer = engVer;
@@ -38,16 +38,36 @@ public class SerializedShader
         Platforms = shaderBf["platforms.Array"]
             .Select(i => (GPUPlatform)i.AsInt).ToList();
 
-        Offsets = SerializedMetadataHelpers.GetArrayFirstValue(shaderBf["offsets.Array"])
-            .Select(o => o.AsUInt).ToList();
+        if (engVer < new UnityVersion(2019, 3, 0))
+        {
+			// 5.5 to 2019.3.0b0
+			Offsets = SerializedMetadataHelpers.GetArrayFirstValue(shaderBf["offsets.Array"])
+                .Select(o => o.AsUInt).ToList();
 
-        var compressedLengths = SerializedMetadataHelpers.GetArrayFirstValue(shaderBf["compressedLengths.Array"]);
-        var decompressedLengths = SerializedMetadataHelpers.GetArrayFirstValue(shaderBf["decompressedLengths.Array"]);
-        CompDecompLengths = compressedLengths.Zip(decompressedLengths)
-            .Select(p => (
-                p.First.AsUInt,
-                p.Second.AsUInt
-            )).ToList();
+			var compressedLengths = SerializedMetadataHelpers.GetArrayFirstValue(shaderBf["compressedLengths.Array"]);
+			var decompressedLengths = SerializedMetadataHelpers.GetArrayFirstValue(shaderBf["decompressedLengths.Array"]);
+			CompDecompLengths = compressedLengths.Zip(decompressedLengths)
+				.Select(p => (
+					p.First.AsUInt,
+					p.Second.AsUInt
+				)).ToList();
+		}
+        else
+        {
+			// 2019.3.0b0 to Max
+			int platformIndex = Platforms.IndexOf(platform);
+
+		    Offsets = shaderBf["offsets.Array"][platformIndex]["Array"]
+                .Select(o => o.AsUInt).ToList();
+
+		    var compressedLengths = shaderBf["compressedLengths.Array"][platformIndex]["Array"];
+		    var decompressedLengths = shaderBf["decompressedLengths.Array"][platformIndex]["Array"];
+            CompDecompLengths = compressedLengths.Zip(decompressedLengths)
+                .Select(p => (
+                    p.First.AsUInt,
+                    p.Second.AsUInt
+                )).ToList();
+        }
 
         CompressedBlob = shaderBf["compressedBlob.Array"].AsByteArray;
 

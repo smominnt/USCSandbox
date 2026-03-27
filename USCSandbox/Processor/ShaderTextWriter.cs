@@ -15,10 +15,10 @@ public class ShaderTextWriter
     private readonly SerializedShader _shader;
     private readonly UnityVersion _engVer;
 
-    public ShaderTextWriter(AssetTypeValueField shaderBf, UnityVersion engVer)
+    public ShaderTextWriter(AssetTypeValueField shaderBf, GPUPlatform platform, UnityVersion engVer)
     {
         _sb = new StringBuilderIndented();
-        _shader = new SerializedShader(shaderBf, engVer);
+        _shader = new SerializedShader(shaderBf, platform, engVer);
         _engVer = engVer;
     }
 
