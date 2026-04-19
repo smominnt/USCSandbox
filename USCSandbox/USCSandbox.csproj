@@ -8,6 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Files\classdata.tpk" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Files\classdata.tpk">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AssetRipper.Primitives" Version="3.2.0" />
     <PackageReference Include="AssetsTools.NET" Version="3.0.2" />
     <Reference Include="MsgPack">
