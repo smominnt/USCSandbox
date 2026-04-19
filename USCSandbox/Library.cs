@@ -1,55 +1,69 @@
-﻿using AssetsTools.NET.Extra;
+﻿using AssetsTools.NET;
+using AssetsTools.NET.Extra;
 using USCSandbox.Common;
 using USCSandbox.Processor;
+using UnityVersion = AssetRipper.Primitives.UnityVersion;
 
 namespace USCSandbox
 {
-    public static class Library
+    public class Library : IDisposable
     {
+        private readonly AssetsManager manager;
+        private readonly GPUPlatform platform;
+        private readonly byte[] data;
+        private readonly UnityVersion passedVersion;
+
+        public Library(byte[] data, int platform, string version = "")
+        {
+            Console.WriteLine("\n[USCSandbox] Library Functions");
+
+            this.manager = new AssetsManager();
+            string assemblyLocation = Path.GetDirectoryName(typeof(Library).Assembly.Location) ?? AppDomain.CurrentDomain.BaseDirectory;
+            string tpkPath = Path.Combine(assemblyLocation, "classdata.tpk");
+            manager.LoadClassPackage(tpkPath);
+
+            this.passedVersion = UnityVersion.Parse(version);
+            manager.LoadClassDatabaseFromPackage(version);
+
+            this.platform = (GPUPlatform)platform;
+            this.data = data;
+        }
+
+
         /// <summary>
-        /// Takes raw shader bytes and returns the decompiled string.
+        /// Decompiles from raw serialized asset field bytes
         /// </summary>
-        public static string DecompileBuffer(byte[] data, AssetRipper.Primitives.UnityVersion version, int platformId)
+        public string DecompileFromAssetBytes(int classId)
         {
-            Initialize();
+            using var ms = new MemoryStream(this.data);
+            using var reader = new AssetsFileReader(ms);
 
-            try
-            {
-                using MemoryStream ms = new MemoryStream(data);
+            var cldb = manager.ClassDatabase
+                ?? throw new InvalidOperationException("Class database not loaded. Was a version string passed to the constructor?");
 
-                AssetsFileInstance inst = _staticManager.LoadAssetsFile(ms, "in_memory_shader.assets", false);
-                _staticManager.LoadClassDatabaseFromPackage(version.ToString());
+            var cldbType = cldb.FindAssetClassByID(classId)
+                ?? throw new InvalidOperationException($"Class ID {classId} not found in class database.");
 
-                var shaderInf = inst.file.GetAssetsOfType(AssetClassID.Shader).FirstOrDefault();
-                if (shaderInf == null) return "// [USC] No Shader object found in buffer.";
+            var templateField = new AssetTypeTemplateField();
+            templateField.FromClassDatabase(cldb, cldbType, false);
 
-                var shaderBf = _staticManager.GetBaseField(inst, shaderInf);
-                if (shaderBf == null) return "// [USC] Failed to read Shader base field.";
+            var baseField = templateField.MakeValue(reader);
 
-                GPUPlatform platform = (GPUPlatform)platformId;
-
-                var shaderTextWriter = new ShaderTextWriter(shaderBf, platform, version);
-                return shaderTextWriter.LoadAndWrite(platform);
-            }
-            catch (Exception ex)
-            {
-                return $"// [USC] Decompilation Error: {ex.Message}\n{ex.StackTrace}";
-            }
+            return DecompileFromField(baseField);
         }
 
 
-        private static readonly AssetsManager _staticManager = new AssetsManager();
-
-        private static bool _isInitialized = false;
-
-        private static void Initialize()
+        private string DecompileFromField(AssetTypeValueField shaderBf)
         {
-            if (!_isInitialized)
-            {
-                _staticManager.LoadClassPackage("classdata.tpk");
-                _isInitialized = true;
-            }
+            var shaderTextWriter = new ShaderTextWriter(shaderBf, platform, passedVersion);
+            return shaderTextWriter.LoadAndWrite(platform);
         }
 
+
+        public void Dispose()
+        {
+            manager.UnloadAll(true);
+            GC.SuppressFinalize(this);
+        }
     }
 }
