@@ -175,6 +175,10 @@ public class ShaderTextWriter
         _sb.Indent();
         {
             WritePassState(pass.State);
+            _sb.AppendLine("CGPROGRAM");
+            _sb.AppendLine("#pragma vertex vert");
+            _sb.AppendLine("#pragma fragment frag");
+            _sb.AppendLine("#include \"UnityCG.cginc\"");
             _sb.AppendLine("");
 
             void WriteParams(ShaderParameters shaderParams)
@@ -226,6 +230,8 @@ public class ShaderTextWriter
                     _sb.AppendLine("");
                 }
             }
+
+            _sb.AppendLine("ENDCG");
 
             //
 
