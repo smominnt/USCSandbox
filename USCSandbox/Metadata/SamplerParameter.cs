@@ -11,4 +11,10 @@ public class SamplerParameter
         BindPoint = r.ReadInt32();
         Sampler = r.ReadUInt32();
     }
+
+	public SamplerParameter(AssetTypeValueField field)
+	{
+		Sampler = field["sampler"].AsUInt;
+		BindPoint = field["bindPoint"].AsInt;
+	}
 }
