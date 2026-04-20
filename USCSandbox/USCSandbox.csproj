@@ -9,10 +9,8 @@
 
   <ItemGroup>
     <None Remove="Files\classdata.tpk" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Files\classdata.tpk">
+      <Link>classdata.tpk</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -39,17 +37,25 @@
 
   <Target Name="USCAfterBuild" AfterTargets="AfterBuild" Condition="'$(SolutionDir)' != '*Undefined*'">
     <ItemGroup>
-      <Files Include="$(SolutionDir)Files\**\*" />
+      <ExtraFiles Include="$(SolutionDir)Files\**\*" Exclude="$(SolutionDir)Files\classdata.tpk" />
     </ItemGroup>
-    <Copy SourceFiles="@(Files)" DestinationFolder="$(OutputPath)" ContinueOnError="true" />
+    <Copy 
+        SourceFiles="@(ExtraFiles)" 
+        DestinationFiles="@(ExtraFiles->'$(OutputPath)%(Filename)%(Extension)')" 
+        SkipUnchangedFiles="true" 
+        ContinueOnError="true" />
     <MakeDir Directories="$(OutputPath)plugins" ContinueOnError="true" />
   </Target>
 
   <Target Name="USCAfterPublish" AfterTargets="Publish" Condition="'$(SolutionDir)' != '*Undefined*'">
     <ItemGroup>
-      <Files Include="$(SolutionDir)Files\**\*" />
+      <ExtraFiles Include="$(SolutionDir)Files\**\*" Exclude="$(SolutionDir)Files\classdata.tpk" />
     </ItemGroup>
-    <Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)" ContinueOnError="true" />
+    <Copy 
+        SourceFiles="@(ExtraFiles)" 
+        DestinationFiles="@(ExtraFiles->'$(PublishDir)%(Filename)%(Extension)')" 
+        SkipUnchangedFiles="true" 
+        ContinueOnError="true" />
     <MakeDir Directories="$(PublishDir)plugins" ContinueOnError="true" />
   </Target>
 
