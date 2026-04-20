@@ -280,10 +280,16 @@ public class ShaderTextWriter
             _sb.AppendLine($"LOD {lod}");
         }
 
+        HashSet<string> propertyNames = [];
+        foreach (var prop in _shader.PropsField)
+        {
+            propertyNames.Add(prop["m_Name"].AsString);
+        }
+
         for (var i = 0; i < state.RtBlendState.Count; i++)
         {
             var index = state.RtBlendState.Count == 1 ? -1 : i;
-            WritePassRtBlend(state.RtBlendState[i], index);
+            WritePassRtBlend(state.RtBlendState[i], index, propertyNames);
         }
 
         var alphaToMask = state.AlphaToMask.Value;
@@ -322,9 +328,9 @@ public class ShaderTextWriter
         {
             _sb.AppendLine("AlphaToMask On");
         }
-        if (zClip == ZClip.On)
+        if (zClip == ZClip.Off)
         {
-            _sb.AppendLine("ZClip On");
+            _sb.AppendLine("ZClip False");
         }
         if (zTest != ZTest.None && zTest != ZTest.LEqual)
         {
@@ -446,7 +452,7 @@ public class ShaderTextWriter
         }
     }
 
-    private void WritePassRtBlend(SerializedShaderRTBlendState rtBlendState, int index)
+    private void WritePassRtBlend(SerializedShaderRTBlendState rtBlendState, int index, HashSet<string> propertyNames)
     {
         var srcBlend = (BlendMode)(int)rtBlendState.SrcBlend.Value;
         var destBlend = (BlendMode)(int)rtBlendState.DestBlend.Value;
@@ -456,14 +462,43 @@ public class ShaderTextWriter
         var blendOpAlpha = (BlendOp)(int)rtBlendState.BlendOpAlpha.Value;
         var colMask = (ColorWriteMask)(int)rtBlendState.ColMask.Value;
 
-        if (srcBlend != BlendMode.One || destBlend != BlendMode.Zero || srcBlendAlpha != BlendMode.One || destBlendAlpha != BlendMode.Zero)
+        bool hasSrcBlendProp = propertyNames.Contains("_SrcBlend");
+        bool hasDstBlendProp = propertyNames.Contains("_DstBlend");
+        bool hasSrcBlendAlphaProp = propertyNames.Contains("_SrcBlendAlpha");
+        bool hasDstBlendAlphaProp = propertyNames.Contains("_DstBlendAlpha");
+
+        bool isDefaultBlend = srcBlend == BlendMode.One 
+            && destBlend == BlendMode.Zero
+            && srcBlendAlpha == BlendMode.One 
+            && destBlendAlpha == BlendMode.Zero;
+
+        bool isInvalidBlend = srcBlend == BlendMode.Zero 
+            && destBlend == BlendMode.Zero;
+
+
+        if (hasSrcBlendProp && hasDstBlendProp)
         {
             _sb.Append("");
             _sb.AppendNoIndent("Blend ");
-            if (index != -1)
+            if (index != -1) _sb.AppendNoIndent($"{index} ");
+
+            string srcStr = hasSrcBlendProp ? "[_SrcBlend]" : srcBlend.ToString();
+            string dstStr = hasDstBlendProp ? "[_DstBlend]" : destBlend.ToString();
+            _sb.AppendNoIndent($"{srcStr} {dstStr}");
+
+            if (hasSrcBlendAlphaProp || hasDstBlendAlphaProp)
             {
-                _sb.AppendNoIndent($"{index} ");
+                string srcAlphaStr = hasSrcBlendAlphaProp ? "[_SrcBlendAlpha]" : srcBlendAlpha.ToString();
+                string dstAlphaStr = hasDstBlendAlphaProp ? "[_DstBlendAlpha]" : destBlendAlpha.ToString();
+                _sb.AppendNoIndent($", {srcAlphaStr} {dstAlphaStr}");
             }
+            _sb.AppendNoIndent("\n");
+        }
+        else if (!isDefaultBlend && !isInvalidBlend)
+        {
+            _sb.Append("");
+            _sb.AppendNoIndent("Blend ");
+            if (index != -1) _sb.AppendNoIndent($"{index} ");
             _sb.AppendNoIndent($"{srcBlend} {destBlend}");
             if (srcBlendAlpha != BlendMode.One || destBlendAlpha != BlendMode.Zero)
             {
