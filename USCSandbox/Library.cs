@@ -15,8 +15,6 @@ namespace USCSandbox
 
         public Library(byte[] data, int platform, string version = "")
         {
-            Console.WriteLine("\n[USCSandbox] Library Functions");
-
             this.manager = new AssetsManager();
             string assemblyLocation = Path.GetDirectoryName(typeof(Library).Assembly.Location) ?? AppDomain.CurrentDomain.BaseDirectory;
             string tpkPath = Path.Combine(assemblyLocation, "classdata.tpk");
